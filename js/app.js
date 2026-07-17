@@ -1,4 +1,6 @@
+// js/app.js
 /* === INIT === */
+migratePjData();
 document.getElementById('nav').addEventListener('click',e=>{const ni=e.target.closest('.ni');if(ni&&ni.dataset.p)nav(ni.dataset.p)});
 document.getElementById('mbtn').addEventListener('click',()=>{document.getElementById('sb').classList.toggle('-translate-x-full');document.getElementById('sov').classList.toggle('hidden')});
 document.getElementById('sov').addEventListener('click',()=>{document.getElementById('sb').classList.add('-translate-x-full');document.getElementById('sov').classList.add('hidden')});
