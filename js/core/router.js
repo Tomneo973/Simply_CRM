@@ -1,3 +1,4 @@
+// js/core/router.js
 /* Navigation */
 let pg='dashboard',pp={};
 function nav(p,params){pg=p;pp=params||{};window.location.hash=p+(pp.id?'/'+pp.id:'');render()}
@@ -16,10 +17,10 @@ function handleHash(){
 function render(){
   showA();
   document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('on',n.dataset.p===pg));
-  const tl={dashboard:'Tableau de bord',clients:'Clients',devis:'Devis',factures:'Factures',retroplanning:'Retroplanning',signature:'Signatures',validation:'Points de validation',parametres:'Parametres',achats:'Achats',bilan:'Bilan annuel'};
+  const tl={dashboard:'Tableau de bord',clients:'Clients',devis:'Devis',factures:'Factures',projets:'Projets',signature:'Signatures',parametres:'Parametres',achats:'Achats',bilan:'Bilan annuel'};
   document.getElementById('ptitle').textContent=tl[pg]||'';
   const C=document.getElementById('ct');
-  const fn={dashboard:rDash,clients:pp.id?rClV:rCl,devis:pp.id?rDvV:rDv,factures:pp.id?rFcV:rFc,retroplanning:pp.id?rRtV:rRt,signature:rSig,validation:pp.id?rVlV:rVl,parametres:rPar,achats:rAc,bilan:pp.id?rBilV:rBil};
+  const fn={dashboard:rDash,clients:pp.id?rClV:rCl,devis:pp.id?rDvV:rDv,factures:pp.id?rFcV:rFc,projets:pp.id?rPjV:rPj,signature:rSig,parametres:rPar,achats:rAc,bilan:pp.id?rBilV:rBil};
   (fn[pg]||rDash)(C,pp.id);
   let t=0;for(let k in localStorage)t+=localStorage[k].length*2;
   document.getElementById('ssize').textContent=(t/1024).toFixed(1)+' Ko';
