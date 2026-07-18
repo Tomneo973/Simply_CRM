@@ -58,3 +58,141 @@ html.light .thsw-thumb{transform:translateX(16px)}
 #portal .pa{background:#E8A832;color:#0C0E14}#portal .pa:hover{background:#CC8F1A}
 #portal .pd{background:#E74C3C;color:#fff}#portal .ps{background:#2ECC71;color:#fff}
 #portal .po{background:transparent;border:2px solid #ddd;color:#555}
+/* ===== DÉBUT AJOUT ===== */
+
+/* --- Recherche globale --- */
+#gs-dropdown a.gs-result-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  text-decoration: none;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+#gs-dropdown a.gs-result-item:hover {
+  background: var(--hover-bg, rgba(0,0,0,0.05));
+}
+#gs-dropdown a.gs-result-item:last-child {
+  border-bottom: none;
+}
+.gs-icon {
+  font-size: 1.3em;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+.gs-info {
+  flex: 1;
+  min-width: 0;
+}
+.gs-info strong {
+  display: block;
+  font-size: 0.9em;
+}
+.gs-info small {
+  color: var(--text-muted);
+  font-size: 0.8em;
+}
+.gs-no-result {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* --- Widget Dashboard --- */
+.dash-widget {
+  margin-bottom: 16px;
+  break-inside: avoid;
+}
+.dash-widget h3 {
+  font-size: 1em;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* --- Section paiements --- */
+.paiement-resume div {
+  padding: 4px 0;
+}
+.form-ajout-paiement label {
+  margin-bottom: 2px;
+}
+.form-ajout-paiement input,
+.form-ajout-paiement select {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+/* --- Lignes de document avec remise --- */
+.doc-ligne td {
+  padding: 4px;
+  vertical-align: middle;
+}
+.doc-ligne input,
+.doc-ligne select {
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 0.9em;
+}
+.doc-ligne input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn-suppr-ligne {
+  background: none;
+  border: 1px solid transparent;
+  color: #e74c3c;
+  cursor: pointer;
+  font-size: 1em;
+  padding: 4px 8px;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+.btn-suppr-ligne:hover {
+  background: #fde8e8;
+  border-color: #e74c3c;
+}
+.btn-del-paiement:hover {
+  opacity: 0.6;
+}
+
+/* --- Section TVA AFC --- */
+.tva-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 0.9em;
+  border-bottom: 1px dashed var(--border);
+}
+
+/* --- Détail TVA par taux --- */
+.detail-tva-taux h4 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 0.95em;
+  color: var(--text-muted);
+}
+.detail-tva-taux table th {
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+}
+
+/* --- Print pour PDF fallback --- */
+@media print {
+  body * { visibility: hidden; }
+  .print-zone, .print-zone * { visibility: visible; }
+  .print-zone { position: absolute; left: 0; top: 0; width: 100%; }
+}
+
+/* ===== FIN AJOUT =====
