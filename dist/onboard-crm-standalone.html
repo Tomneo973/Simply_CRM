@@ -100,10 +100,12 @@ html.light .thsw-thumb{transform:translateX(16px)}
       <div class="px-4 mt-4 mb-2 text-[.65rem] uppercase tracking-widest text-muted/50 font-semibold">Commercial</div>
       <div class="ni" data-p="devis"><i class="fas fa-file-invoice w-5 text-center"></i>Devis</div>
       <div class="ni" data-p="factures"><i class="fas fa-file-invoice-dollar w-5 text-center"></i>Factures</div>
-      <div class="px-4 mt-4 mb-2 text-[.65rem] uppercase tracking-widest text-muted/50 font-semibold">Projet</div>
-      <div class="ni" data-p="retroplanning"><i class="fas fa-calendar-alt w-5 text-center"></i>Retroplanning</div>
-      <div class="ni" data-p="signature"><i class="fas fa-signature w-5 text-center"></i>Signatures</div>
-      <div class="ni" data-p="validation"><i class="fas fa-check-double w-5 text-center"></i>Validations</div>
+
+   <div class="px-4 mt-4 mb-2 text-[.65rem] uppercase tracking-widest text-muted/50 font-semibold">Projets</div>
+   <div class="ni" data-p="projets"><i class="fas fa-diagram-project w-5 text-center"></i>Projets</div>
+   <div class="ni" data-p="signature"><i class="fas fa-signature w-5 text-center"></i>Signatures</div>
+
+
       <div class="px-4 mt-4 mb-2 text-[.65rem] uppercase tracking-widest text-muted/50 font-semibold">Finances</div>
       <div class="ni" data-p="achats"><i class="fas fa-cart-shopping w-5 text-center"></i>Achats</div>
       <div class="ni" data-p="bilan"><i class="fas fa-chart-pie w-5 text-center"></i>Bilan annuel</div>
@@ -140,7 +142,8 @@ html.light .thsw-thumb{transform:translateX(16px)}
 
 <!-- Core (load first: data layer, UI primitives, router) -->
 <script>
-const K={cl:'crm_cl',dv:'crm_dv',fc:'crm_fc',rt:'crm_rt',vl:'crm_vl',sg:'crm_sg',st:'crm_st',ac:'crm_ac'};
+// js/core/utils.js
+const K={cl:'crm_cl',dv:'crm_dv',fc:'crm_fc',pj:'crm_pj',rt:'crm_rt',vl:'crm_vl',sg:'crm_sg',st:'crm_st',ac:'crm_ac'};
 const uid=()=>Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
 const gd=k=>{try{return JSON.parse(localStorage.getItem(k))||[]}catch(e){return[]}};
 const sd=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
@@ -154,7 +157,6 @@ const td=()=>new Date().toISOString().split('T')[0];
 const nn=(px,a,f)=>{const y=new Date().getFullYear();const mx=Math.max(0,...a.filter(i=>(i[f]||'').includes(px+y)).map(i=>{const m=(i[f]||'').split('-');return parseInt(m[m.length-1])||0}));return px+y+'-'+String(mx+1).padStart(3,'0')};
 const bsg=(s,t)=>{const m={devis:{brouillon:'bdr',envoye:'bi',accepte:'bo',refuse:'bk'},facture:{brouillon:'bdr',envoyee:'bi',payee:'bo',retard:'bk'}};const l={brouillon:'Brouillon',envoye:'Envoye',envoyee:'Envoyee',accepte:'Accepte',refuse:'Refuse',payee:'Payee',retard:'En retard'};return'<span class="badge '+(m[t]?.[s]||'bdr')+'">'+(l[s]||s)+'</span>'};
 const tvxOf=it=>{if(it.tauxTVA!=null&&it.tauxTVA!=='')return parseFloat(it.tauxTVA);if(it.totalHT)return Math.round(it.totalTVA/it.totalHT*10000)/100;return gSt().tva||20};
-
 </script>
 <script>
 function toast(msg,t='info'){const c=document.getElementById('toasts');const e=document.createElement('div');e.className='toast t'+t[0]+' pointer-events-auto';const ic={success:'fa-check-circle',error:'fa-exclamation-circle',info:'fa-info-circle'};e.innerHTML='<i class="fas '+(ic[t]||ic.info)+'"></i><span>'+msg+'</span>';c.appendChild(e);setTimeout(()=>{e.style.opacity='0';e.style.transform='translateX(100%)';e.style.transition='all .3s';setTimeout(()=>e.remove(),300)},3500)}
@@ -165,6 +167,7 @@ function closeM(){document.getElementById('mover').style.display='none'}
 
 </script>
 <script>
+// js/core/filesystem.js
 const FS={
   h:null,ls:null,
   _all(){const d={};Object.values(K).forEach(k=>{try{d[k]=JSON.parse(localStorage.getItem(k))}catch(e){d[k]=null}});return d},
@@ -179,13 +182,13 @@ const FS={
     if('showOpenFilePicker' in window){try{const[h]=await window.showOpenFilePicker({types:[{description:'JSON',accept:{'application/json':['.json']}}]});this._read(await(await h.getFile()).text());this.h=h;return}catch(e){if(e.name!=='AbortError')toast('Erreur','error');return}}
     const i=document.createElement('input');i.type='file';i.accept='.json';i.onchange=e=>{const f=e.target.files[0];if(f){const r=new FileReader();r.onload=ev=>this._read(ev.target.result);r.readAsText(f)}};i.click();
   },
-  _read(t){try{this._load(JSON.parse(t));this.ls=new Date();updSi();toast('Donnees chargees','success');render()}catch(e){toast('JSON invalide','error')}},
+  _read(t){try{this._load(JSON.parse(t));migratePjData();this.ls=new Date();updSi();toast('Donnees chargees','success');render()}catch(e){toast('JSON invalide','error')}},
   _ok(m){this.ls=new Date();updSi();toast(m,'success')}
 };
 function updSi(){const e=document.getElementById('sind');if(!e)return;if(FS.ls){e.textContent='Sauvegarde : '+FS.ls.toLocaleTimeString('fr-FR');e.style.color='#2ECC71'}else{e.textContent='Non sauvegarde en fichier';e.style.color='#F39C12'}}
-
 </script>
 <script>
+// js/core/router.js
 /* Navigation */
 let pg='dashboard',pp={};
 function nav(p,params){pg=p;pp=params||{};window.location.hash=p+(pp.id?'/'+pp.id:'');render()}
@@ -204,10 +207,10 @@ function handleHash(){
 function render(){
   showA();
   document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('on',n.dataset.p===pg));
-  const tl={dashboard:'Tableau de bord',clients:'Clients',devis:'Devis',factures:'Factures',retroplanning:'Retroplanning',signature:'Signatures',validation:'Points de validation',parametres:'Parametres',achats:'Achats',bilan:'Bilan annuel'};
+  const tl={dashboard:'Tableau de bord',clients:'Clients',devis:'Devis',factures:'Factures',projets:'Projets',signature:'Signatures',parametres:'Parametres',achats:'Achats',bilan:'Bilan annuel'};
   document.getElementById('ptitle').textContent=tl[pg]||'';
   const C=document.getElementById('ct');
-  const fn={dashboard:rDash,clients:pp.id?rClV:rCl,devis:pp.id?rDvV:rDv,factures:pp.id?rFcV:rFc,retroplanning:pp.id?rRtV:rRt,signature:rSig,validation:pp.id?rVlV:rVl,parametres:rPar,achats:rAc,bilan:pp.id?rBilV:rBil};
+  const fn={dashboard:rDash,clients:pp.id?rClV:rCl,devis:pp.id?rDvV:rDv,factures:pp.id?rFcV:rFc,projets:pp.id?rPjV:rPj,signature:rSig,parametres:rPar,achats:rAc,bilan:pp.id?rBilV:rBil};
   (fn[pg]||rDash)(C,pp.id);
   let t=0;for(let k in localStorage)t+=localStorage[k].length*2;
   document.getElementById('ssize').textContent=(t/1024).toFixed(1)+' Ko';
@@ -219,7 +222,6 @@ function cfm(title,msg,fn){showM(title,'<p class="text-muted">'+msg+'</p><div cl
 
 /* Filter table */
 function ft(cls,q){q=q.toLowerCase();document.querySelectorAll('.'+cls).forEach(r=>r.style.display=r.dataset.s.includes(q)?'':'none')}
-
 </script>
 
 <!-- Feature modules -->
@@ -362,17 +364,18 @@ function expCSVModal(type){
 
 </script>
 <script>
+// js/modules/dashboard.js
 /* === DASHBOARD === */
 function rDash(C){
-  const cl=gd(K.cl),dv=gd(K.dv),fc=gd(K.fc),vl=gd(K.vl);
+  const cl=gd(K.cl),dv=gd(K.dv),fc=gd(K.fc),pj=gd(K.pj);
   const ca=fc.filter(f=>f.statut==='payee').reduce((s,f)=>s+(f.totalTTC||0),0);
-  const pts=vl.flatMap(v=>v.points).filter(p=>p.statut==='en_attente').length;
+  const pts=pj.flatMap(p=>p.etapes).filter(e=>e.statut==='en_attente').length;
   if(!cl.length&&!dv.length&&!fc.length){C.innerHTML='<div class="max-w-lg mx-auto text-center py-20"><div class="w-20 h-20 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-6"><i class="fas fa-bolt text-accent text-3xl"></i></div><h2 class="text-2xl font-bold mb-3">Bienvenue</h2><p class="text-muted mb-8">Creez votre premier client ou chargez des donnees existantes.</p><div class="flex flex-col sm:flex-row gap-3 justify-center"><button class="b bp" onclick="nav(\'clients\')"><i class="fas fa-plus"></i> Creer un client</button><button class="b bs" onclick="FS.load()"><i class="fas fa-folder-open"></i> Charger des donnees</button></div></div>';return}
-  C.innerHTML='<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8"><div class="sc a"><div class="text-muted text-xs font-semibold uppercase tracking-wider mb-1">Clients</div><div class="text-3xl font-bold text-fg">'+cl.length+'</div></div><div class="sc bl"><div class="text-muted text-xs font-semibold uppercase tracking-wider mb-1">Devis en attente</div><div class="text-3xl font-bold text-fg">'+dv.filter(d=>d.statut==='envoye').length+'</div></div><div class="sc r"><div class="text-muted text-xs font-semibold uppercase tracking-wider mb-1">Factures impayees</div><div class="text-3xl font-bold text-fg">'+fc.filter(f=>f.statut==='envoyee'||f.statut==='retard').length+'</div></div><div class="sc g"><div class="text-muted text-xs font-semibold uppercase tracking-wider mb-1">CA encaisse</div><div class="text-3xl font-bold text-fg">'+fm(ca)+'</div></div></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="cd"><div class="flex items-center justify-between mb-4"><h3 class="font-semibold">Derniers devis</h3><button class="b bs sm" onclick="nav(\'devis\')"><i class="fas fa-plus"></i></button></div>'+(dv.length?'<table><thead><tr><th>Numero</th><th>Client</th><th>Montant</th><th>Statut</th></tr></thead><tbody>'+dv.slice(-5).reverse().map(d=>{const c=cl.find(x=>x.id===d.clientId);return'<tr class="cursor-pointer" onclick="nav(\'devis\',{id:\''+d.id+'\'})"><td class="font-mono text-accent text-xs">'+d.numero+'</td><td>'+(c?.nom||'-')+'</td><td>'+fm(d.totalTTC)+'</td><td>'+bsg(d.statut,'devis')+'</td></tr>'}).join('')+'</tbody></table>':'<div class="es"><i class="fas fa-file-invoice block"></i>Aucun devis</div>')+'</div><div class="cd"><div class="flex items-center justify-between mb-4"><h3 class="font-semibold">Points a valider</h3><button class="b bs sm" onclick="nav(\'validation\')"><i class="fas fa-eye"></i></button></div>'+(pts?'<div class="space-y-3">'+vl.flatMap(v=>v.points.filter(p=>p.statut==='en_attente').map(p=>({p,v}))).slice(0,5).map(({p,v})=>'<div class="flex items-center justify-between p-3 bg-surface2 rounded-lg"><div><div class="text-sm font-medium">'+p.titre+'</div><div class="text-xs text-muted">'+v.projetNom+'</div></div><span class="badge bw">En attente</span></div>').join('')+'</div>':'<div class="es"><i class="fas fa-check-double block"></i>Tout valide !</div>')+'</div></div>';
+  C.innerHTML='<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8"><div class="sc a"><div class="text-muted text-xs font-semibold uppercase tracking-wider mb-1">Clients</div><div class="text-3xl font-bold text-fg">'+cl.length+'</div></div><div class="sc bl"><div class="text-muted text-xs font-semibold uppercase tracking-wider mb-1">Devis en attente</div><div class="text-3xl font-bold text-fg">'+dv.filter(d=>d.statut==='envoye').length+'</div></div><div class="sc r"><div class="text-muted text-xs font-semibold uppercase tracking-wider mb-1">Factures impayees</div><div class="text-3xl font-bold text-fg">'+fc.filter(f=>f.statut==='envoyee'||f.statut==='retard').length+'</div></div><div class="sc g"><div class="text-muted text-xs font-semibold uppercase tracking-wider mb-1">CA encaisse</div><div class="text-3xl font-bold text-fg">'+fm(ca)+'</div></div></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="cd"><div class="flex items-center justify-between mb-4"><h3 class="font-semibold">Derniers devis</h3><button class="b bs sm" onclick="nav(\'devis\')"><i class="fas fa-plus"></i></button></div>'+(dv.length?'<table><thead><tr><th>Numero</th><th>Client</th><th>Montant</th><th>Statut</th></tr></thead><tbody>'+dv.slice(-5).reverse().map(d=>{const c=cl.find(x=>x.id===d.clientId);return'<tr class="cursor-pointer" onclick="nav(\'devis\',{id:\''+d.id+'\'})"><td class="font-mono text-accent text-xs">'+d.numero+'</td><td>'+(c?.nom||'-')+'</td><td>'+fm(d.totalTTC)+'</td><td>'+bsg(d.statut,'devis')+'</td></tr>'}).join('')+'</tbody></table>':'<div class="es"><i class="fas fa-file-invoice block"></i>Aucun devis</div>')+'</div><div class="cd"><div class="flex items-center justify-between mb-4"><h3 class="font-semibold">Etapes a valider</h3><button class="b bs sm" onclick="nav(\'projets\')"><i class="fas fa-eye"></i></button></div>'+(pts?'<div class="space-y-3">'+pj.flatMap(p=>p.etapes.filter(e=>e.statut==='en_attente').map(e=>({e,p}))).slice(0,5).map(({e,p})=>'<div class="flex items-center justify-between p-3 bg-surface2 rounded-lg"><div><div class="text-sm font-medium">'+e.nom+'</div><div class="text-xs text-muted">'+p.nom+'</div></div><span class="badge bw">A valider</span></div>').join('')+'</div>':'<div class="es"><i class="fas fa-check-double block"></i>Tout valide !</div>')+'</div></div>';
 }
-
 </script>
 <script>
+// js/modules/clients.js
 /* === CLIENTS === */
 function rCl(C){
   const a=gd(K.cl);
@@ -398,11 +401,10 @@ function rClF(id){
 }
 function rClV(C,id){
   const c=gd(K.cl).find(x=>x.id===id);if(!c){C.innerHTML='<div class="es">Introuvable</div>';return}
-  const dv=gd(K.dv).filter(d=>d.clientId===id),fc=gd(K.fc).filter(f=>f.clientId===id);
+  const dv=gd(K.dv).filter(d=>d.clientId===id),fc=gd(K.fc).filter(f=>f.clientId===id),pj=gd(K.pj).filter(p=>p.clientId===id);
   document.getElementById('ptitle').textContent=c.nom;
-  C.innerHTML='<button class="b bs mb-4" onclick="nav(\'clients\')"><i class="fas fa-arrow-left"></i> Retour</button><div class="grid grid-cols-1 lg:grid-cols-3 gap-6"><div class="cd lg:col-span-1"><div class="text-center mb-4"><div class="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-3 text-2xl font-bold text-accent">'+(c.nom||'?')[0].toUpperCase()+'</div><h2 class="text-xl font-bold">'+c.nom+'</h2><div class="text-muted text-sm">'+(c.entreprise||'')+'</div></div><div class="space-y-3 text-sm"><div class="flex gap-3"><i class="fas fa-envelope text-muted w-5 text-center"></i>'+(c.email||'-')+'</div><div class="flex gap-3"><i class="fas fa-phone text-muted w-5 text-center"></i>'+(c.tel||'-')+'</div><div class="flex gap-3"><i class="fas fa-map-marker-alt text-muted w-5 text-center"></i>'+(c.adresse||'-')+'</div></div>'+(c.notes?'<div class="mt-4 p-3 bg-surface2 rounded-lg text-sm text-muted">'+c.notes+'</div>':'')+'<div class="flex gap-2 mt-4"><button class="b bs sm flex-1" onclick="rClF(\''+id+'\')"><i class="fas fa-pen"></i> Modifier</button><button class="b bd sm" onclick="cfm(\'Supprimer ?\',\'\',function(){sd(K.cl,gd(K.cl).filter(x=>x.id!==\''+id+'\'));toast(\'Supprime\',\'success\');render()})"><i class="fas fa-trash"></i></button></div></div><div class="lg:col-span-2 space-y-6"><div class="cd"><h3 class="font-semibold mb-3">Devis ('+dv.length+')</h3>'+(dv.length?'<table><thead><tr><th>Numero</th><th>Date</th><th>Montant</th><th>Statut</th></tr></thead><tbody>'+dv.map(d=>'<tr class="cursor-pointer" onclick="nav(\'devis\',{id:\''+d.id+'\'})"><td class="font-mono text-accent text-xs">'+d.numero+'</td><td class="text-muted text-sm">'+fd(d.date)+'</td><td>'+fm(d.totalTTC,d.devise)+'</td><td>'+bsg(d.statut,'devis')+'</td></tr>').join('')+'</tbody></table>':'<p class="text-muted text-sm">Aucun</p>')+'</div><div class="cd"><h3 class="font-semibold mb-3">Factures ('+fc.length+')</h3>'+(fc.length?'<table><thead><tr><th>Numero</th><th>Date</th><th>Montant</th><th>Statut</th></tr></thead><tbody>'+fc.map(f=>'<tr class="cursor-pointer" onclick="nav(\'factures\',{id:\''+f.id+'\'})"><td class="font-mono text-accent text-xs">'+f.numero+'</td><td class="text-muted text-sm">'+fd(f.date)+'</td><td>'+fm(f.totalTTC,f.devise)+'</td><td>'+bsg(f.statut,'facture')+'</td></tr>').join('')+'</tbody></table>':'<p class="text-muted text-sm">Aucune</p>')+'</div></div></div>';
+  C.innerHTML='<button class="b bs mb-4" onclick="nav(\'clients\')"><i class="fas fa-arrow-left"></i> Retour</button><div class="grid grid-cols-1 lg:grid-cols-3 gap-6"><div class="cd lg:col-span-1"><div class="text-center mb-4"><div class="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-3 text-2xl font-bold text-accent">'+(c.nom||'?')[0].toUpperCase()+'</div><h2 class="text-xl font-bold">'+c.nom+'</h2><div class="text-muted text-sm">'+(c.entreprise||'')+'</div></div><div class="space-y-3 text-sm"><div class="flex gap-3"><i class="fas fa-envelope text-muted w-5 text-center"></i>'+(c.email||'-')+'</div><div class="flex gap-3"><i class="fas fa-phone text-muted w-5 text-center"></i>'+(c.tel||'-')+'</div><div class="flex gap-3"><i class="fas fa-map-marker-alt text-muted w-5 text-center"></i>'+(c.adresse||'-')+'</div></div>'+(c.notes?'<div class="mt-4 p-3 bg-surface2 rounded-lg text-sm text-muted">'+c.notes+'</div>':'')+'<div class="flex gap-2 mt-4"><button class="b bs sm flex-1" onclick="rClF(\''+id+'\')"><i class="fas fa-pen"></i> Modifier</button><button class="b bd sm" onclick="cfm(\'Supprimer ?\',\'\',function(){sd(K.cl,gd(K.cl).filter(x=>x.id!==\''+id+'\'));toast(\'Supprime\',\'success\');render()})"><i class="fas fa-trash"></i></button></div></div><div class="lg:col-span-2 space-y-6"><div class="cd"><h3 class="font-semibold mb-3">Devis ('+dv.length+')</h3>'+(dv.length?'<table><thead><tr><th>Numero</th><th>Date</th><th>Montant</th><th>Statut</th></tr></thead><tbody>'+dv.map(d=>'<tr class="cursor-pointer" onclick="nav(\'devis\',{id:\''+d.id+'\'})"><td class="font-mono text-accent text-xs">'+d.numero+'</td><td class="text-muted text-sm">'+fd(d.date)+'</td><td>'+fm(d.totalTTC,d.devise)+'</td><td>'+bsg(d.statut,'devis')+'</td></tr>').join('')+'</tbody></table>':'<p class="text-muted text-sm">Aucun</p>')+'</div><div class="cd"><h3 class="font-semibold mb-3">Factures ('+fc.length+')</h3>'+(fc.length?'<table><thead><tr><th>Numero</th><th>Date</th><th>Montant</th><th>Statut</th></tr></thead><tbody>'+fc.map(f=>'<tr class="cursor-pointer" onclick="nav(\'factures\',{id:\''+f.id+'\'})"><td class="font-mono text-accent text-xs">'+f.numero+'</td><td class="text-muted text-sm">'+fd(f.date)+'</td><td>'+fm(f.totalTTC,f.devise)+'</td><td>'+bsg(f.statut,'facture')+'</td></tr>').join('')+'</tbody></table>':'<p class="text-muted text-sm">Aucune</p>')+'</div><div class="cd"><h3 class="font-semibold mb-3">Projets ('+pj.length+')</h3>'+(pj.length?'<div class="space-y-2">'+pj.map(p=>{const s=pjStats(p);return'<div class="flex items-center justify-between p-3 bg-surface2 rounded-lg cursor-pointer" onclick="nav(\'projets\',{id:\''+p.id+'\'})"><div><div class="text-sm font-medium">'+p.nom+'</div><div class="text-xs text-muted">'+s.t+' etape(s)</div></div><div class="w-24 bg-surface rounded-full h-2"><div class="bg-accent h-2 rounded-full" style="width:'+s.pc+'%"></div></div></div>'}).join('')+'</div>':'<p class="text-muted text-sm">Aucun</p>')+'</div></div></div>';
 }
-
 </script>
 <script>
 /* === LIGNES (devis/facture) === */
@@ -473,35 +475,249 @@ function rFcV(C,id){
 
 </script>
 <script>
-/* === RETROPLANNING === */
-function rRt(C){
-  const a=gd(K.rt),cl=gd(K.cl);
-  C.innerHTML='<div class="flex items-center justify-between mb-6"><span class="text-muted text-sm">'+a.length+' retroplanning(s)</span><button class="b bp" onclick="rRtF()"><i class="fas fa-plus"></i> Nouveau</button></div>'+(a.length?'<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">'+a.map(r=>{const c=cl.find(x=>x.id===r.clientId);const dn=r.etapes.filter(e=>e.statut==='termine').length;const pc=r.etapes.length?Math.round(dn/r.etapes.length*100):0;return'<div class="cd cursor-pointer hover:border-accent/30 transition-colors" onclick="nav(\'retroplanning\',{id:\''+r.id+'\'})"><div class="flex items-center justify-between mb-3"><h3 class="font-semibold">'+r.nom+'</h3><button class="b bd sm" onclick="event.stopPropagation();cfm(\'Supprimer ?\',\'\',function(){sd(K.rt,gd(K.rt).filter(x=>x.id!==\''+r.id+'\'));toast(\'Supprime\',\'success\');render()})"><i class="fas fa-trash"></i></button></div><div class="text-sm text-muted mb-3"><i class="fas fa-user mr-2"></i>'+(c?.nom||'-')+'<br><i class="fas fa-list-check mr-2"></i>'+r.etapes.length+' etapes</div><div class="w-full bg-surface2 rounded-full h-2"><div class="bg-accent h-2 rounded-full" style="width:'+pc+'%"></div></div><div class="text-right text-xs text-muted mt-1">'+pc+'%</div></div>'}).join('')+'</div>':'<div class="cd es"><i class="fas fa-calendar-alt block"></i>Aucun retroplanning.</div>');
-}
-function rRtF(id){
-  const r=id?gd(K.rt).find(x=>x.id===id):null;const cl=gd(K.cl);
-  document.getElementById('ptitle').textContent=r?'Modifier le retroplanning':'Nouveau retroplanning';
-  const C=document.getElementById('ct');const et=r?r.etapes:[{id:uid(),nom:'',dateDebut:'',dateFin:'',statut:'a_venir'}];
-  C.innerHTML='<div class="max-w-3xl"><button class="b bs mb-4" onclick="nav(\'retroplanning\')"><i class="fas fa-arrow-left"></i> Retour</button><div class="cd"><form id="rtf"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"><div><label>Client *</label><select class="ip" name="clientId" required><option value="">Selectionner...</option>'+cl.map(c=>'<option value="'+c.id+'" '+(r?.clientId===c.id?'selected':'')+'>'+c.nom+'</option>').join('')+'</select></div><div><label>Nom du projet *</label><input class="ip" name="nom" required value="'+(r?.nom||'')+'"></div></div><div class="mb-4"><div class="flex items-center justify-between mb-3"><label class="mb-0">Etapes</label><button type="button" class="b bs sm" onclick="addEt()"><i class="fas fa-plus"></i> Ajouter</button></div><div id="etc" class="space-y-3">'+et.map((e,i)=>etH(e,i)).join('')+'</div></div><div class="flex gap-3 mt-6"><button type="submit" class="b bp"><i class="fas fa-save"></i> Enregistrer</button><button type="button" class="b bs" onclick="nav(\'retroplanning\')">Annuler</button></div></form></div></div>';
-  C.querySelector('#rtf').onsubmit=function(e){
-    e.preventDefault();const f=new FormData(this);const et=[];let i=0;
-    while(document.querySelector('[name="en'+i+'"]')){et.push({id:uid(),nom:f.get('en'+i),dateDebut:f.get('ed'+i),dateFin:f.get('ef'+i),statut:f.get('es'+i)});i++}
-    const data={clientId:f.get('clientId'),nom:f.get('nom'),etapes:et};let a=gd(K.rt);
-    if(id){a=a.map(x=>x.id===id?{...x,...data}:x);toast('Modifie','success')}else{a.push({id:uid(),...data});toast('Cree','success')}
-    sd(K.rt,a);nav('retroplanning');
-  };
-}
-function etH(e,i){return'<div class="p-4 bg-surface2 rounded-lg etr" data-i="'+i+'"><div class="grid grid-cols-1 md:grid-cols-4 gap-3"><input class="ip" name="en'+i+'" placeholder="Nom" value="'+(e.nom||'').replace(/"/g,'&quot;')+'"><input class="ip" name="ed'+i+'" type="date" value="'+(e.dateDebut||'')+'"><input class="ip" name="ef'+i+'" type="date" value="'+(e.dateFin||'')+'"><select class="ip" name="es'+i+'"><option value="a_venir" '+(e.statut==='a_venir'?'selected':'')+'>A venir</option><option value="en_cours" '+(e.statut==='en_cours'?'selected':'')+'>En cours</option><option value="termine" '+(e.statut==='termine'?'selected':'')+'>Termine</option></select></div><button type="button" class="b bd sm mt-2" onclick="this.closest(\'.etr\').remove()"><i class="fas fa-times"></i> Supprimer</button></div>'}
-function addEt(){const c=document.getElementById('etc');c.insertAdjacentHTML('beforeend',etH({id:uid(),nom:'',dateDebut:'',dateFin:'',statut:'a_venir'},c.children.length))}
-function rRtV(C,id){
-  const r=gd(K.rt).find(x=>x.id===id),cl=gd(K.cl);if(!r){C.innerHTML='<div class="es">Introuvable</div>';return}
-  const c=cl.find(x=>x.id===r.clientId);document.getElementById('ptitle').textContent=r.nom;
-  const ds=r.etapes.map(e=>[e.dateDebut,e.dateFin].filter(Boolean).map(d=>new Date(d).getTime())).flat();
-  const mn=ds.length?Math.min(...ds):Date.now(),mx=ds.length?Math.max(...ds):Date.now()+864e5,rng=Math.max(mx-mn,864e5);
-  const co={a_venir:'background:rgba(107,112,137,.15);border:1px solid rgba(107,112,137,.3);color:#6B7089',en_cours:'background:rgba(52,152,219,.15);border:1px solid rgba(52,152,219,.3);color:#3498DB',termine:'background:rgba(46,204,113,.15);border:1px solid rgba(46,204,113,.3);color:#2ECC71'};
-  C.innerHTML='<button class="b bs mb-4" onclick="nav(\'retroplanning\')"><i class="fas fa-arrow-left"></i> Retour</button><div class="flex flex-wrap gap-2 mb-4"><button class="b bs" onclick="rRtF(\''+id+'\')"><i class="fas fa-pen"></i> Modifier</button></div><div class="cd mb-6"><div class="text-sm"><span class="text-muted">Client :</span> <strong>'+(c?.nom||'-')+'</strong> — <span class="text-muted">'+r.etapes.length+' etapes</span></div></div><div class="cd overflow-x-auto"><div style="min-width:700px">'+r.etapes.map(e=>{const s=e.dateDebut?new Date(e.dateDebut).getTime():mn,en=e.dateFin?new Date(e.dateFin).getTime():s+864e5*3,l=Math.max(0,((s-mn)/rng)*100),w=Math.max(3,((en-s)/rng)*100);return'<div class="flex items-center gap-4 mb-3" style="min-height:40px"><div class="w-48 flex-shrink-0 text-sm font-medium truncate">'+(e.nom||'Etape')+'</div><div class="flex-1 relative h-10"><div class="gb" style="left:'+l+'%;width:'+w+'%;'+(co[e.statut]||'')+'">'+(e.nom||'')+'</div></div><select class="ip w-28 text-xs py-1" onchange="sd(K.rt,gd(K.rt).map(r=>r.id===\''+id+'\'?{...r,etapes:r.etapes.map(x=>x.id===\''+e.id+'\'?{...x,statut:this.value}:x)}:r));toast(\'OK\',\'success\');render()"><option value="a_venir" '+(e.statut==='a_venir'?'selected':'')+'>A venir</option><option value="en_cours" '+(e.statut==='en_cours'?'selected':'')+'>En cours</option><option value="termine" '+(e.statut==='termine'?'selected':'')+'>Termine</option></select></div>'}).join('')+'</div></div>';
+// js/modules/projets.js
+/* === PROJETS (fusion retroplanning + validation) === */
+const pjStL = { en_attente: 'A valider', en_cours: 'En cours', valide: 'Valide', rejete: 'Rejete' };
+const pjStB = { en_attente: 'bw', en_cours: 'bi', valide: 'bo', rejete: 'bk' };
+const pjStC = {
+  en_attente: 'background:rgba(107,112,137,.15);border:1px solid rgba(107,112,137,.3);color:#6B7089',
+  en_cours: 'background:rgba(52,152,219,.15);border:1px solid rgba(52,152,219,.3);color:#3498DB',
+  valide: 'background:rgba(46,204,113,.15);border:1px solid rgba(46,204,113,.3);color:#2ECC71',
+  rejete: 'background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.3);color:#E74C3C'
+};
+
+function pjStats(p){
+  const t=p.etapes.length;
+  const va=p.etapes.filter(e=>e.statut==='valide').length;
+  const at=p.etapes.filter(e=>e.statut==='en_attente').length;
+  const ec=p.etapes.filter(e=>e.statut==='en_cours').length;
+  const re=p.etapes.filter(e=>e.statut==='rejete').length;
+  return {t,va,at,ec,re,pc:t?Math.round(va/t*100):0};
 }
 
+/* --- Migration depuis les anciennes donnees retroplanning (crm_rt) + validation (crm_vl) --- */
+function migratePjData(){
+  const rt=gd(K.rt), vl=gd(K.vl);
+  if(!rt.length && !vl.length) return;
+  let pj=gd(K.pj);
+  const doneRt=new Set(pj.filter(p=>p._fromRt).map(p=>p._fromRt));
+  const doneVl=new Set(pj.flatMap(p=>p._fromVl||[]));
+  const usedVl=new Set();
+  let changed=false;
+  rt.forEach(r=>{
+    if(doneRt.has(r.id))return;
+    const etapes=(r.etapes||[]).map(e=>({
+      id:uid(), nom:e.nom||'', description:'', dateDebut:e.dateDebut||'', dateFin:e.dateFin||'',
+      statut:e.statut==='termine'?'valide':(e.statut==='en_cours'?'en_cours':'en_attente'),
+      validePar:'', dateValidation:''
+    }));
+    const match=vl.find(v=>!usedVl.has(v.id) && !doneVl.has(v.id) && v.clientId===r.clientId && v.projetNom && r.nom && v.projetNom.toLowerCase()===r.nom.toLowerCase());
+    if(match){
+      usedVl.add(match.id);
+      (match.points||[]).forEach(pt=>{
+        const em=etapes.find(e=>e.nom.toLowerCase()===(pt.titre||'').toLowerCase());
+        const st=pt.statut==='valide'?'valide':(pt.statut==='rejete'?'rejete':null);
+        if(em){
+          em.description=pt.description||'';
+          if(st)em.statut=st;
+          em.validePar=pt.validePar||'';
+          em.dateValidation=pt.dateValidation||'';
+        }else{
+          etapes.push({id:uid(),nom:pt.titre||'',description:pt.description||'',dateDebut:'',dateFin:'',statut:st||'en_attente',validePar:pt.validePar||'',dateValidation:pt.dateValidation||''});
+        }
+      });
+    }
+    pj.push({id:uid(),nom:r.nom||'Projet',clientId:r.clientId,etapes,_fromRt:r.id,_fromVl:match?[match.id]:[]});
+    changed=true;
+  });
+  vl.forEach(v=>{
+    if(doneVl.has(v.id) || usedVl.has(v.id))return;
+    pj.push({
+      id:uid(), nom:v.projetNom||'Projet', clientId:v.clientId,
+      etapes:(v.points||[]).map(pt=>({
+        id:uid(), nom:pt.titre||'', description:pt.description||'', dateDebut:'', dateFin:'',
+        statut:pt.statut==='valide'?'valide':(pt.statut==='rejete'?'rejete':'en_attente'),
+        validePar:pt.validePar||'', dateValidation:pt.dateValidation||''
+      })),
+      _fromVl:[v.id]
+    });
+    changed=true;
+  });
+  if(changed) sd(K.pj, pj);
+}
+
+/* --- Liste --- */
+function rPj(C){
+  const a=gd(K.pj), cl=gd(K.cl);
+  C.innerHTML='<div class="flex items-center justify-between mb-6"><span class="text-muted text-sm">'+a.length+' projet(s)</span><button class="b bp" onclick="rPjF()"><i class="fas fa-plus"></i> Nouveau projet</button></div>'
+    +(a.length?'<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">'+a.map(p=>{
+      const c=cl.find(x=>x.id===p.clientId);
+      const s=pjStats(p);
+      return '<div class="cd cursor-pointer hover:border-accent/30 transition-colors" onclick="nav(\'projets\',{id:\''+p.id+'\'})">'
+        +'<div class="flex items-center justify-between mb-3"><h3 class="font-semibold">'+p.nom+'</h3><button class="b bd sm" onclick="event.stopPropagation();cfm(\'Supprimer ?\',\'\',function(){sd(K.pj,gd(K.pj).filter(x=>x.id!==\''+p.id+'\'));toast(\'Supprime\',\'success\');render()})"><i class="fas fa-trash"></i></button></div>'
+        +'<div class="text-sm text-muted mb-3"><i class="fas fa-user mr-2"></i>'+(c?.nom||'-')+'<br><i class="fas fa-list-check mr-2"></i>'+s.t+' etape(s)</div>'
+        +'<div class="w-full bg-surface2 rounded-full h-2 mb-2"><div class="bg-accent h-2 rounded-full" style="width:'+s.pc+'%"></div></div>'
+        +'<div class="flex flex-wrap gap-1">'
+          +(s.at?'<span class="badge '+pjStB.en_attente+'">'+s.at+' a valider</span>':'')
+          +(s.ec?'<span class="badge '+pjStB.en_cours+'">'+s.ec+' en cours</span>':'')
+          +(s.va?'<span class="badge '+pjStB.valide+'">'+s.va+' valide(s)</span>':'')
+          +(s.re?'<span class="badge '+pjStB.rejete+'">'+s.re+' rejete(s)</span>':'')
+        +'</div></div>';
+    }).join('')+'</div>':'<div class="cd es"><i class="fas fa-diagram-project block"></i>Aucun projet. Creez-en un pour planifier des etapes et les faire valider par vos clients.</div>');
+}
+
+/* --- Formulaire creation/edition --- */
+function pjEtH(e,i){
+  return '<div class="p-4 bg-surface2 rounded-lg per" data-i="'+i+'">'
+    +'<input type="hidden" name="eid'+i+'" value="'+(e.id||'')+'">'
+    +'<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3"><input class="ip" name="en'+i+'" placeholder="Nom de l\'etape" required value="'+(e.nom||'').replace(/"/g,'&quot;')+'"><input class="ip" name="ede'+i+'" placeholder="Description (optionnel)" value="'+(e.description||'').replace(/"/g,'&quot;')+'"></div>'
+    +'<div class="grid grid-cols-1 md:grid-cols-3 gap-3"><input class="ip" name="ed'+i+'" type="date" value="'+(e.dateDebut||'')+'"><input class="ip" name="ef'+i+'" type="date" value="'+(e.dateFin||'')+'"><select class="ip" name="es'+i+'">'
+      +'<option value="en_attente" '+(e.statut==='en_attente'?'selected':'')+'>A valider</option>'
+      +'<option value="en_cours" '+(e.statut==='en_cours'?'selected':'')+'>En cours</option>'
+      +'<option value="valide" '+(e.statut==='valide'?'selected':'')+'>Valide</option>'
+      +'<option value="rejete" '+(e.statut==='rejete'?'selected':'')+'>Rejete</option>'
+    +'</select></div>'
+    +'<button type="button" class="b bd sm mt-2" onclick="this.closest(\'.per\').remove()"><i class="fas fa-times"></i> Supprimer</button>'
+  +'</div>';
+}
+function addPjEt(){
+  const c=document.getElementById('pec');
+  c.insertAdjacentHTML('beforeend', pjEtH({id:'',nom:'',description:'',dateDebut:'',dateFin:'',statut:'en_attente'}, c.children.length));
+}
+function rPjF(id){
+  const p=id?gd(K.pj).find(x=>x.id===id):null;
+  const cl=gd(K.cl);
+  document.getElementById('ptitle').textContent = p?'Modifier le projet':'Nouveau projet';
+  const C=document.getElementById('ct');
+  const et = p && p.etapes.length ? p.etapes : [{id:'',nom:'',description:'',dateDebut:'',dateFin:'',statut:'en_attente'}];
+  C.innerHTML='<div class="max-w-3xl"><button class="b bs mb-4" onclick="nav(\'projets\')"><i class="fas fa-arrow-left"></i> Retour</button><div class="cd"><form id="pjf">'
+    +'<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"><div><label>Client *</label><select class="ip" name="clientId" required><option value="">Selectionner...</option>'+cl.map(c=>'<option value="'+c.id+'" '+(p?.clientId===c.id?'selected':'')+'>'+c.nom+'</option>').join('')+'</select></div><div><label>Nom du projet *</label><input class="ip" name="nom" required value="'+(p?.nom||'')+'"></div></div>'
+    +'<div class="mb-4"><div class="flex items-center justify-between mb-3"><label class="mb-0">Etapes (planning + validation client)</label><button type="button" class="b bs sm" onclick="addPjEt()"><i class="fas fa-plus"></i> Ajouter</button></div><div id="pec" class="space-y-3">'+et.map((e,i)=>pjEtH(e,i)).join('')+'</div></div>'
+    +'<div class="flex gap-3 mt-6"><button type="submit" class="b bp"><i class="fas fa-save"></i> Enregistrer</button><button type="button" class="b bs" onclick="nav(\'projets\')">Annuler</button></div>'
+  +'</form></div></div>';
+  C.querySelector('#pjf').onsubmit=function(e){
+    e.preventDefault();
+    const f=new FormData(this);
+    const old = p ? p.etapes : [];
+    const etapes=[]; let i=0;
+    while(document.querySelector('[name="en'+i+'"]')){
+      const eid=f.get('eid'+i);
+      const prev=eid?old.find(x=>x.id===eid):null;
+      etapes.push({
+        id: eid || uid(),
+        nom: f.get('en'+i),
+        description: f.get('ede'+i)||'',
+        dateDebut: f.get('ed'+i),
+        dateFin: f.get('ef'+i),
+        statut: f.get('es'+i),
+        validePar: prev?.validePar || '',
+        dateValidation: prev?.dateValidation || ''
+      });
+      i++;
+    }
+    const data={clientId:f.get('clientId'), nom:f.get('nom'), etapes};
+    let a=gd(K.pj);
+    if(id){ a=a.map(x=>x.id===id?{...x,...data}:x); toast('Modifie','success'); }
+    else { a.push({id:uid(),...data}); toast('Cree','success'); }
+    sd(K.pj,a);
+    nav('projets');
+  };
+}
+
+/* --- Detail : onglets Planning (Gantt) / Validation --- */
+function rPjV(C,id){
+  const p=gd(K.pj).find(x=>x.id===id), cl=gd(K.cl);
+  if(!p){ C.innerHTML='<div class="es">Introuvable</div>'; return; }
+  const c=cl.find(x=>x.id===p.clientId);
+  document.getElementById('ptitle').textContent=p.nom;
+  const s=pjStats(p);
+  C.innerHTML='<button class="b bs mb-4" onclick="nav(\'projets\')"><i class="fas fa-arrow-left"></i> Retour</button>'
+    +'<div class="flex flex-wrap gap-2 mb-4"><button class="b bs" onclick="rPjF(\''+id+'\')"><i class="fas fa-pen"></i> Modifier</button><button class="b bp" onclick="genPjVL(\''+id+'\')"><i class="fas fa-link"></i> Lien client</button><button class="b bs" onclick="impPjVR()"><i class="fas fa-download"></i> Importer une reponse</button></div>'
+    +'<div class="cd mb-6"><div class="text-sm"><span class="text-muted">Client :</span> <strong>'+(c?.nom||'-')+'</strong> — <span class="text-muted">'+s.t+' etape(s), '+s.va+' validee(s)</span></div></div>'
+    +'<div class="flex gap-2 mb-4"><button class="b bs sm pjtab on" data-tab="gantt" onclick="pjTab(\'gantt\')"><i class="fas fa-chart-gantt"></i> Planning</button><button class="b bs sm pjtab" data-tab="val" onclick="pjTab(\'val\')"><i class="fas fa-check-double"></i> Validation</button></div>'
+    +'<div id="pjt-gantt">'+pjGanttHTML(p)+'</div>'
+    +'<div id="pjt-val" style="display:none">'+pjValHTML(p)+'</div>';
+}
+function pjTab(t){
+  document.querySelectorAll('.pjtab').forEach(b=>b.classList.toggle('on', b.dataset.tab===t));
+  document.getElementById('pjt-gantt').style.display = t==='gantt' ? '' : 'none';
+  document.getElementById('pjt-val').style.display = t==='val' ? '' : 'none';
+}
+function pjSetSt(pid,eid,val){
+  sd(K.pj, gd(K.pj).map(p=>p.id===pid?{...p,etapes:p.etapes.map(e=>{
+    if(e.id!==eid) return e;
+    const patch = (val==='valide'||val==='rejete') ? {validePar:e.validePar||'(interne)', dateValidation:new Date().toISOString()} : {};
+    return {...e, statut:val, ...patch};
+  })}:p));
+  toast('Statut mis a jour','success');
+  render();
+}
+function pjGanttHTML(p){
+  const legend='<div class="flex flex-wrap gap-3 mb-4 text-xs">'+Object.keys(pjStL).map(k=>'<span class="flex items-center gap-1"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;'+pjStC[k]+'"></span>'+pjStL[k]+'</span>').join('')+'</div>';
+  if(!p.etapes.length) return legend+'<div class="cd es"><i class="fas fa-chart-gantt block"></i>Aucune etape.</div>';
+  const ds=p.etapes.map(e=>[e.dateDebut,e.dateFin].filter(Boolean).map(d=>new Date(d).getTime())).flat();
+  const mn=ds.length?Math.min(...ds):Date.now(), mx=ds.length?Math.max(...ds):Date.now()+864e5, rng=Math.max(mx-mn,864e5);
+  const now=Date.now();
+  const nowPc = (now>=mn && now<=mx) ? ((now-mn)/rng)*100 : null;
+  return legend+'<div class="cd overflow-x-auto"><div style="min-width:700px;position:relative">'
+    +(nowPc!=null?'<div style="position:absolute;left:'+nowPc+'%;top:0;bottom:0;width:2px;background:rgb(var(--c-accent));z-index:1" title="Aujourd\'hui"></div>':'')
+    +p.etapes.map(e=>{
+      const st=e.dateDebut?new Date(e.dateDebut).getTime():mn;
+      const en=e.dateFin?new Date(e.dateFin).getTime():st+864e5*3;
+      const l=Math.max(0,((st-mn)/rng)*100), w=Math.max(3,((en-st)/rng)*100);
+      return '<div class="flex items-center gap-4 mb-3" style="min-height:40px">'
+        +'<div class="w-48 flex-shrink-0"><div class="text-sm font-medium truncate">'+(e.nom||'Etape')+'</div><div class="text-xs text-muted">'+fd(e.dateDebut)+' - '+fd(e.dateFin)+'</div></div>'
+        +'<div class="flex-1 relative h-10"><div class="gb" style="left:'+l+'%;width:'+w+'%;'+pjStC[e.statut]+'">'+(e.nom||'')+'</div></div>'
+        +'<select class="ip w-32 text-xs py-1" onchange="pjSetSt(\''+p.id+'\',\''+e.id+'\',this.value)">'
+          +'<option value="en_attente" '+(e.statut==='en_attente'?'selected':'')+'>A valider</option>'
+          +'<option value="en_cours" '+(e.statut==='en_cours'?'selected':'')+'>En cours</option>'
+          +'<option value="valide" '+(e.statut==='valide'?'selected':'')+'>Valide</option>'
+          +'<option value="rejete" '+(e.statut==='rejete'?'selected':'')+'>Rejete</option>'
+        +'</select></div>';
+    }).join('')
+  +'</div></div>';
+}
+function pjValHTML(p){
+  const si={en_attente:'fa-clock text-warning', en_cours:'fa-hourglass-half text-info', valide:'fa-check-circle text-success', rejete:'fa-times-circle text-danger'};
+  if(!p.etapes.length) return '<div class="cd es"><i class="fas fa-check-double block"></i>Aucune etape.</div>';
+  return '<div class="space-y-3">'+p.etapes.map(e=>
+    '<div class="cd flex flex-col md:flex-row md:items-center justify-between gap-3"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><i class="fas '+si[e.statut]+'"></i><h4 class="font-semibold">'+e.nom+'</h4></div>'+(e.description?'<p class="text-sm text-muted">'+e.description+'</p>':'')+'</div><div class="flex items-center gap-3"><span class="badge '+pjStB[e.statut]+'">'+pjStL[e.statut]+'</span>'+(e.validePar?'<div class="text-right text-xs text-muted"><div>par '+e.validePar+'</div><div>'+(e.dateValidation?new Date(e.dateValidation).toLocaleString('fr-FR'):'')+'</div></div>':'')+'</div></div>'
+  ).join('')+'</div>';
+}
+
+/* --- Lien client / import de reponse (le portail public reste dans portal.js, inchange) --- */
+function genPjVL(pid){
+  const p=gd(K.pj).find(x=>x.id===pid); if(!p) return;
+  const pl=btoa(unescape(encodeURIComponent(JSON.stringify({v:pid, n:p.nom, p:p.etapes.map(e=>({id:e.id,t:e.nom,d:e.description}))}))));
+  const url=location.origin+location.pathname+'#val='+pl;
+  showM('Lien de validation','<p class="text-sm text-muted mb-3">Envoyez ce lien au client :</p><input class="ip font-mono text-xs mb-3" value="'+url+'" readonly onclick="this.select()" id="vli"><div class="flex gap-2"><button class="b bp sm" onclick="navigator.clipboard.writeText(document.getElementById(\'vli\').value);toast(\'Copie\',\'success\')"><i class="fas fa-copy"></i> Copier</button></div><div class="mt-4 p-3 bg-surface2 rounded-lg text-xs text-muted"><strong>Processus :</strong><ol class="list-decimal ml-4 mt-1 space-y-1"><li>Envoyez le lien au client</li><li>Il valide/rejette les etapes</li><li>Il vous renvoie le lien de reponse</li><li>Cliquez "Importer une reponse" et collez le lien</li></ol></div>');
+}
+function impPjVR(){
+  showM('Importer une reponse','<p class="text-sm text-muted mb-3">Collez le lien de reponse du client :</p><input class="ip font-mono text-xs mb-4" id="ri"><div class="flex gap-3 justify-end"><button class="b bs" onclick="closeM()">Annuler</button><button class="b bp" onclick="procPjVR()">Importer</button></div>');
+}
+function importVResp(enc){
+  impPjVR();
+  setTimeout(()=>{ const i=document.getElementById('ri'); if(i) i.value='#resp='+enc; }, 100);
+}
+function procPjVR(){
+  let v=document.getElementById('ri').value.trim();
+  if(v.includes('#resp=')) v=v.split('#resp=')[1];
+  try{
+    const d=JSON.parse(decodeURIComponent(escape(atob(v))));
+    const a=gd(K.pj);
+    const i=a.findIndex(x=>x.id===d.v);
+    if(i===-1){ toast('Projet introuvable','error'); return; }
+    d.r.forEach(r=>{
+      if(r.s!=='valide' && r.s!=='rejete') return; // on ignore les etapes que le client n'a pas traitees
+      const ei=a[i].etapes.findIndex(e=>e.id===r.id);
+      if(ei!==-1){ a[i].etapes[ei].statut=r.s; a[i].etapes[ei].validePar=r.n; a[i].etapes[ei].dateValidation=r.d; }
+    });
+    sd(K.pj,a);
+    closeM();
+    toast('Reponse importee !','success');
+    render();
+  }catch(e){ toast('Lien invalide','error'); }
+}
 </script>
 <script>
 /* === SIGNATURES === */
@@ -517,46 +733,8 @@ function delS(cid){const s=gs(K.sg);delete s[cid];ss(K.sg,s);toast('Supprimee','
 function genSL(cid){const cl=gd(K.cl);const c=cl.find(x=>x.id===cid);if(!c)return;const pl=btoa(unescape(encodeURIComponent(JSON.stringify({c:cid,n:c.nom}))));const url=location.origin+location.pathname+'#sign='+pl;showM('Lien de signature','<p class="text-sm text-muted mb-3">Envoyez ce lien a <strong>'+c.nom+'</strong> :</p><input class="ip font-mono text-xs" value="'+url+'" readonly onclick="this.select()" id="sli"><div class="flex gap-2 mt-4"><button class="b bp sm" onclick="navigator.clipboard.writeText(document.getElementById(\'sli\').value);toast(\'Copie\',\'success\')"><i class="fas fa-copy"></i> Copier</button></div>')}
 
 </script>
-<script>
-/* === VALIDATIONS === */
-function rVl(C){
-  const a=gd(K.vl),cl=gd(K.cl);
-  C.innerHTML='<div class="flex items-center justify-between mb-6"><span class="text-muted text-sm">'+a.length+' projet(s)</span><button class="b bp" onclick="rVlF()"><i class="fas fa-plus"></i> Nouveau</button></div>'+(a.length?'<div class="space-y-4">'+a.map(v=>{const c=cl.find(x=>x.id===v.clientId);const at=v.points.filter(p=>p.statut==='en_attente').length,ok=v.points.filter(p=>p.statut==='valide').length,ko=v.points.filter(p=>p.statut==='rejete').length;return'<div class="cd"><div class="flex flex-col md:flex-row md:items-center justify-between gap-4"><div class="flex-1"><h3 class="font-semibold text-lg">'+v.projetNom+'</h3><div class="text-sm text-muted mb-2"><i class="fas fa-user mr-1"></i>'+(c?.nom||'-')+'</div><div class="flex gap-4 text-sm"><span class="badge bw">'+at+' en attente</span><span class="badge bo">'+ok+' valide(s)</span><span class="badge bk">'+ko+' rejete(s)</span></div></div><div class="flex gap-2 flex-wrap"><button class="b bp sm" onclick="genVL(\''+v.id+'\')"><i class="fas fa-link"></i> Lien client</button><button class="b bs sm" onclick="impVR()"><i class="fas fa-download"></i> Importer</button><button class="b bs sm" onclick="nav(\'validation\',{id:\''+v.id+'\'})"><i class="fas fa-eye"></i> Detail</button><button class="b bd sm" onclick="cfm(\'Supprimer ?\',\'\',function(){sd(K.vl,gd(K.vl).filter(x=>x.id!==\''+v.id+'\'));toast(\'Supprime\',\'success\');render()})"><i class="fas fa-trash"></i></button></div></div></div>'}).join('')+'</div>':'<div class="cd es"><i class="fas fa-check-double block"></i>Aucun projet.</div>');
-}
-function rVlF(id){
-  const v=id?gd(K.vl).find(x=>x.id===id):null;const cl=gd(K.cl);
-  document.getElementById('ptitle').textContent=v?'Modifier':'Nouveau projet de validation';
-  const C=document.getElementById('ct');const pts=v?v.points:[{id:uid(),titre:'',description:'',statut:'en_attente',validePar:'',dateValidation:''}];
-  C.innerHTML='<div class="max-w-3xl"><button class="b bs mb-4" onclick="nav(\'validation\')"><i class="fas fa-arrow-left"></i> Retour</button><div class="cd"><form id="vlf"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"><div><label>Client *</label><select class="ip" name="clientId" required><option value="">Selectionner...</option>'+cl.map(c=>'<option value="'+c.id+'" '+(v?.clientId===c.id?'selected':'')+'>'+c.nom+'</option>').join('')+'</select></div><div><label>Nom du projet *</label><input class="ip" name="projetNom" required value="'+(v?.projetNom||'')+'"></div></div><div class="mb-4"><div class="flex items-center justify-between mb-3"><label class="mb-0">Points a valider</label><button type="button" class="b bs sm" onclick="addPt()"><i class="fas fa-plus"></i> Ajouter</button></div><div id="ptc" class="space-y-3">'+pts.map((p,i)=>ptH(p,i)).join('')+'</div></div><div class="flex gap-3 mt-6"><button type="submit" class="b bp"><i class="fas fa-save"></i> Enregistrer</button><button type="button" class="b bs" onclick="nav(\'validation\')">Annuler</button></div></form></div></div>';
-  C.querySelector('#vlf').onsubmit=function(e){
-    e.preventDefault();const f=new FormData(this);const pts=[];let i=0;
-    while(document.querySelector('[name="pt'+i+'"]')){const t=f.get('pt'+i);if(t)pts.push({id:uid(),titre:t,description:f.get('pd'+i),statut:'en_attente',validePar:'',dateValidation:''});i++}
-    const data={clientId:f.get('clientId'),projetNom:f.get('projetNom'),points:pts};let a=gd(K.vl);
-    if(id){const old=a.find(x=>x.id===id);a=a.map(x=>x.id===id?{...x,...data,points:data.points.map((p,j)=>({...p,...(old?.points[j]||{}),titre:p.titre,description:p.description}))}:x);toast('Modifie','success')}else{a.push({id:uid(),...data});toast('Cree','success')}
-    sd(K.vl,a);nav('validation');
-  };
-}
-function ptH(p,i){return'<div class="p-4 bg-surface2 rounded-lg ptr" data-i="'+i+'"><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><input class="ip" name="pt'+i+'" placeholder="Titre du point" value="'+(p.titre||'').replace(/"/g,'&quot;')+'"><input class="ip" name="pd'+i+'" placeholder="Description (optionnel)" value="'+(p.description||'').replace(/"/g,'&quot;')+'"></div><button type="button" class="b bd sm mt-2" onclick="this.closest(\'.ptr\').remove()"><i class="fas fa-times"></i> Supprimer</button></div>'}
-function addPt(){const c=document.getElementById('ptc');c.insertAdjacentHTML('beforeend',ptH({id:uid(),titre:'',description:'',statut:'en_attente'},c.children.length))}
-function rVlV(C,id){
-  const v=gd(K.vl).find(x=>x.id===id),cl=gd(K.cl);if(!v){C.innerHTML='<div class="es">Introuvable</div>';return}
-  const c=cl.find(x=>x.id===v.clientId);document.getElementById('ptitle').textContent=v.projetNom;
-  const si={en_attente:'fa-clock text-warning',valide:'fa-check-circle text-success',rejete:'fa-times-circle text-danger'};
-  const sl={en_attente:'En attente',valide:'Valide',rejete:'Rejete'};
-  const bc={en_attente:'bw',valide:'bo',rejete:'bk'};
-  C.innerHTML='<button class="b bs mb-4" onclick="nav(\'validation\')"><i class="fas fa-arrow-left"></i> Retour</button><div class="flex flex-wrap gap-2 mb-6"><button class="b bp" onclick="genVL(\''+id+'\')"><i class="fas fa-link"></i> Generer le lien client</button><button class="b bs" onclick="impVR()"><i class="fas fa-download"></i> Importer une reponse</button><button class="b bs" onclick="rVlF(\''+id+'\')"><i class="fas fa-pen"></i> Modifier</button></div><div class="cd mb-4"><div class="text-sm text-muted">Client : <strong class="text-fg">'+(c?.nom||'-')+'</strong></div></div><div class="space-y-3">'+v.points.map(p=>'<div class="cd flex flex-col md:flex-row md:items-center justify-between gap-3"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><i class="fas '+si[p.statut]+'"></i><h4 class="font-semibold">'+p.titre+'</h4></div>'+(p.description?'<p class="text-sm text-muted">'+p.description+'</p>':'')+'</div><div class="flex items-center gap-3"><span class="badge '+bc[p.statut]+'">'+sl[p.statut]+'</span>'+(p.validePar?'<div class="text-right text-xs text-muted"><div>par '+p.validePar+'</div><div>'+(p.dateValidation?new Date(p.dateValidation).toLocaleString('fr-FR'):'')+'</div></div>':'')+'</div></div>').join('')+'</div>';
-}
-function genVL(vid){
-  const v=gd(K.vl).find(x=>x.id===vid);if(!v)return;
-  const pl=btoa(unescape(encodeURIComponent(JSON.stringify({v:vid,n:v.projetNom,p:v.points.map(p=>({id:p.id,t:p.titre,d:p.description}))}))));
-  const url=location.origin+location.pathname+'#val='+pl;
-  showM('Lien de validation','<p class="text-sm text-muted mb-3">Envoyez ce lien au client :</p><input class="ip font-mono text-xs mb-3" value="'+url+'" readonly onclick="this.select()" id="vli"><div class="flex gap-2"><button class="b bp sm" onclick="navigator.clipboard.writeText(document.getElementById(\'vli\').value);toast(\'Copie\',\'success\')"><i class="fas fa-copy"></i> Copier</button></div><div class="mt-4 p-3 bg-surface2 rounded-lg text-xs text-muted"><strong>Processus :</strong><ol class="list-decimal ml-4 mt-1 space-y-1"><li>Envoyez le lien au client</li><li>Il valide/rejette les points</li><li>Il vous renvoie le lien de reponse</li><li>Cliquez "Importer une reponse" et collez le lien</li></ol></div>');
-}
-function impVR(){showM('Importer une reponse','<p class="text-sm text-muted mb-3">Collez le lien de reponse du client :</p><input class="ip font-mono text-xs mb-4" id="ri"><div class="flex gap-3 justify-end"><button class="b bs" onclick="closeM()">Annuler</button><button class="b bp" onclick="procVR()">Importer</button></div>')}
-function importVResp(enc){impVR();setTimeout(()=>{const i=document.getElementById('ri');if(i)i.value='#resp='+enc},100)}
-function procVR(){let v=document.getElementById('ri').value.trim();if(v.includes('#resp='))v=v.split('#resp=')[1];try{const d=JSON.parse(decodeURIComponent(escape(atob(v))));const a=gd(K.vl);const i=a.findIndex(x=>x.id===d.v);if(i===-1){toast('Projet introuvable','error');return}d.r.forEach(r=>{const pi=a[i].points.findIndex(p=>p.id===r.id);if(pi!==-1){a[i].points[pi].statut=r.s;a[i].points[pi].validePar=r.n;a[i].points[pi].dateValidation=r.d}});sd(K.vl,a);closeM();toast('Reponse importee !','success');render()}catch(e){toast('Lien invalide','error')}}
 
-</script>
+
 <script>
 /* === ACHATS === */
 const acCat={charges_sociales:'Charges sociales',materiel:'Materiel',fournisseur:'Facture fournisseur',autre:'Autre'};
@@ -709,7 +887,9 @@ function rPar(C){
 
 <!-- App bootstrap (load last: wires events, triggers initial render) -->
 <script>
+// js/app.js
 /* === INIT === */
+migratePjData();
 document.getElementById('nav').addEventListener('click',e=>{const ni=e.target.closest('.ni');if(ni&&ni.dataset.p)nav(ni.dataset.p)});
 document.getElementById('mbtn').addEventListener('click',()=>{document.getElementById('sb').classList.toggle('-translate-x-full');document.getElementById('sov').classList.toggle('hidden')});
 document.getElementById('sov').addEventListener('click',()=>{document.getElementById('sb').classList.add('-translate-x-full');document.getElementById('sov').classList.add('hidden')});
@@ -718,7 +898,6 @@ document.getElementById('mover').addEventListener('click',e=>{if(e.target.id==='
 document.getElementById('thtg').addEventListener('click',()=>{const isLight=document.documentElement.classList.toggle('light');try{localStorage.setItem('crm_theme',isLight?'light':'dark')}catch(e){}});
 window.addEventListener('hashchange',handleHash);
 handleHash();
-
 </script>
 </body>
 </html>
