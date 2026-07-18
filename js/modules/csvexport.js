@@ -29,5 +29,34 @@ function expCSVModal(type){
     if(type==='factures')expFacturesCSV(start,end);else if(type==='devis')expDevisCSV(start,end);else if(type==='achats')expAchatsCSV(start,end);
   };
 }
+// ===== DÉBUT AJOUT =====
 
+// Si ces fonctions n'existent pas déjà dans ce fichier, les ajouter.
+// Sinon, les supprimer de clients.js et les laisser ici uniquement.
+
+function csvEscape(champ) {
+  if (!champ) return '';
+  if (champ.indexOf(';') !== -1 || champ.indexOf('"') !== -1 || champ.indexOf('\n') !== -1) {
+    return '"' + champ.replace(/"/g, '""') + '"';
+  }
+  return champ;
+}
+
+function telechargerFichier(contenu, nomFichier, mimeType) {
+  var blob = new Blob([contenu], { type: mimeType });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = nomFichier;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function getDateFichier() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// ===== FIN AJOUT =====
 /* Toast */
