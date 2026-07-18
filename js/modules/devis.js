@@ -25,3 +25,58 @@ function rDvV(C,id){
   C.innerHTML='<button class="b bs mb-4" onclick="nav(\'devis\')"><i class="fas fa-arrow-left"></i> Retour</button><div class="flex flex-wrap gap-2 mb-4"><button class="b bp" onclick="expPdf(\'devis\',\''+id+'\')"><i class="fas fa-file-pdf"></i> PDF</button>'+(gSt().qrEnabled!==false?'<button class="b bs" onclick="previewQR(\'devis\',\''+id+'\')"><i class="fas fa-qrcode"></i> Apercu QR-facture</button>':'')+'<button class="b bs" onclick="rDvF(\''+id+'\')"><i class="fas fa-pen"></i> Modifier</button><select class="ip w-auto" onchange="chSt(\'dv\',\''+id+'\',this.value)"><option value="brouillon" '+(d.statut==='brouillon'?'selected':'')+'>Brouillon</option><option value="envoye" '+(d.statut==='envoye'?'selected':'')+'>Envoye</option><option value="accepte" '+(d.statut==='accepte'?'selected':'')+'>Accepte</option><option value="refuse" '+(d.statut==='refuse'?'selected':'')+'>Refuse</option></select>'+(d.statut==='accepte'?'<button class="b bg" onclick="mkFc(\''+id+'\')"><i class="fas fa-file-invoice-dollar"></i> Creer facture</button>':'')+'</div><div class="cd"><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"><div><div class="text-xs text-muted uppercase tracking-wider mb-1">Emetteur</div><div class="font-semibold">'+(st.nom||'')+'</div><div class="text-sm text-muted">'+(st.adresse||'')+'<br>'+(st.email||'')+'</div></div><div class="text-right"><div class="text-xs text-muted uppercase tracking-wider mb-1">Client</div><div class="font-semibold">'+(c?.nom||'-')+'</div><div class="text-sm text-muted">'+(c?.entreprise||'')+'<br>'+(c?.adresse||'')+'</div></div></div><div class="grid grid-cols-3 gap-4 mb-6"><div><span class="text-xs text-muted">Numero</span><div class="font-mono text-accent font-semibold">'+d.numero+'</div></div><div><span class="text-xs text-muted">Date</span><div>'+fd(d.date)+'</div></div><div><span class="text-xs text-muted">Validite</span><div>'+fd(d.dateValidite)+'</div></div></div><table><thead><tr><th>Description</th><th class="text-right">Qte</th><th class="text-right">Prix unit.</th><th class="text-right">Total</th></tr></thead><tbody>'+d.lignes.map(l=>'<tr><td>'+l.description+'</td><td class="text-right">'+l.quantite+'</td><td class="text-right">'+fm(l.prixUnitaire,d.devise)+'</td><td class="text-right font-medium">'+fm(l.total,d.devise)+'</td></tr>').join('')+'</tbody></table><div class="flex justify-end mt-4"><div class="w-64 space-y-1 text-sm"><div class="flex justify-between"><span class="text-muted">HT</span><span>'+fm(d.totalHT,d.devise)+'</span></div><div class="flex justify-between"><span class="text-muted">TVA ('+tvxOf(d)+'%)</span><span>'+fm(d.totalTVA,d.devise)+'</span></div><div class="flex justify-between text-lg font-bold border-t border-border pt-2 mt-2"><span>TTC</span><span class="text-accent">'+fm(d.totalTTC,d.devise)+'</span></div></div></div>'+(sg[d.clientId]?'<div class="mt-6 pt-4 border-t border-border"><div class="text-xs text-muted uppercase tracking-wider mb-2">Signature</div><img src="'+sg[d.clientId]+'" class="h-20 bg-white/5 p-2 rounded-lg"></div>':'')+(d.notes?'<div class="mt-4 p-3 bg-surface2 rounded-lg text-sm text-muted">'+d.notes+'</div>':'')+'</div>';
 }
 function mkFc(did){const d=gd(K.dv).find(x=>x.id===did);if(!d)return;const a=gd(K.fc);a.push({id:uid(),devisId:did,clientId:d.clientId,numero:nn('FAC-',a,'numero'),date:td(),dateEcheance:'',lignes:d.lignes.map(l=>({...l})),totalHT:d.totalHT,totalTVA:d.totalTVA,totalTTC:d.totalTTC,tauxTVA:tvxOf(d),devise:d.devise||'CHF',notes:'Devis '+d.numero,statut:'brouillon'});sd(K.fc,a);toast('Facture creee','success');nav('factures')}
+
+// ===== DÉBUT AJOUT =====
+
+// --- Conversion devis → facture avec conservation des lignes (remise/TVA) ---
+function convertirDevisEnFacture(devisId) {
+  var devisListe = getStored(STORAGE_KEYS.devis) || [];
+  var devis = devisListe.find(function(d) { return d.id === devisId; });
+  if (!devis) { toast('Devis introuvable', 'error'); return; }
+
+  var factures = getStored(STORAGE_KEYS.factures) || [];
+  var numero = genererNumeroFacture(); // Adapter au nom de ta fonction existante
+
+  // Copier les lignes avec tous les nouveaux champs
+  var lignes = (devis.lignes || []).map(function(l) {
+    return {
+      description:    l.description || '',
+      quantite:       l.quantite || 0,
+      prix_unitaire:  l.prix_unitaire || 0,
+      remise_type:    l.remise_type || '',
+      remise_valeur:  l.remise_valeur || '',
+      taux_tva:       l.taux_tva || 'standard'
+    };
+  });
+
+  var echeance = new Date();
+  echeance.setDate(echeance.getDate() + 30);
+
+  var facture = {
+    id: 'fac_' + Date.now(),
+    numero: numero,
+    date: new Date().toISOString().split('T')[0],
+    date_echeance: echeance.toISOString().split('T')[0],
+    client_id: devis.client_id,
+    objet: (devis.objet || '').replace(/^Devis/i, 'Facture'),
+    lignes: lignes,
+    total: devis.total, // Sera recalculé si nécessaire
+    total_ht: devis.total_ht,
+    total_tva: devis.total_tva,
+    statut: 'Brouillon',
+    devis_id: devis.id,
+    paiements: []
+  };
+
+  factures.push(facture);
+  setStored(STORAGE_KEYS.factures, factures);
+
+  // Marquer le devis comme converti
+  devis.statut = 'Converti en facture';
+  setStored(STORAGE_KEYS.devis, devisListe);
+
+  toast('Facture ' + numero + ' créée à partir du devis', 'success');
+  return facture.id;
+}
+
+// ===== FIN AJOUT =====
